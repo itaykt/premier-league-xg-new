@@ -1,5 +1,8 @@
 """Smoke tests for the FastAPI app (health + predict when a model artifact exists)."""
 
+# Pytest matches fixture names to test parameters; that triggers redefined-outer-name otherwise.
+# pylint: disable=redefined-outer-name
+
 from __future__ import annotations
 
 import pytest
@@ -11,13 +14,13 @@ _MODEL = ROOT / "models" / "logistic_context.pkl"
 
 
 @pytest.fixture
-def test_client():
-    with TestClient(app) as client:
-        yield client
+def client():
+    with TestClient(app) as tc:
+        yield tc
 
 
-def test_health_get_returns_expected_shape(test_client: TestClient) -> None:
-    r = test_client.get("/api/health")
+def test_health_get_returns_expected_shape(client: TestClient) -> None:
+    r = client.get("/api/health")
     assert r.status_code == 200
     body = r.json()
     assert body["model"] == "logistic_context"
@@ -29,8 +32,8 @@ def test_health_get_returns_expected_shape(test_client: TestClient) -> None:
     not _MODEL.is_file(),
     reason="requires models/logistic_context.pkl (run: python scripts/train_and_export.py)",
 )
-def test_predict_post_happy_path(test_client: TestClient) -> None:
-    r = test_client.post("/api/predict", json={"x": 95.0, "y": 40.0})
+def test_predict_post_happy_path(client: TestClient) -> None:
+    r = client.post("/api/predict", json={"x": 95.0, "y": 40.0})
     assert r.status_code == 200
     data = r.json()
     assert "xg" in data
