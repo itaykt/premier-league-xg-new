@@ -1,0 +1,66 @@
+{
+  "n_shots": 64,
+  "n_matches": 3,
+  "cross_val_grouped_by_match": {
+    "context_model": {
+      "log_loss": 0.5147386588173047,
+      "brier": 0.1160833287225275,
+      "roc_auc": 0.5027322404371585
+    },
+    "baseline_location_only": {
+      "log_loss": 0.6928769493632023,
+      "brier": 0.1347048769305391,
+      "roc_auc": 0.3224043715846995
+    },
+    "n_splits": 3,
+    "note": "Out-of-fold predictions; grouped by match_id to reduce leakage."
+  },
+  "in_sample_full_context": {
+    "log_loss": 0.22391103620622455,
+    "brier": 0.06447759997242636,
+    "roc_auc": 0.9890710382513661,
+    "note": "Optimistic \u2014 use cross_val_* for reporting."
+  },
+  "calibration": {
+    "strategy": "uniform_10_bins",
+    "prob_true": [
+      0.05128205128205128,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ],
+    "prob_pred": [
+      0.017466782820981505,
+      0.13867717319427225,
+      0.23781563414039966,
+      0.35728274232854174,
+      0.4601503055691456,
+      0.5596491008668233,
+      0.6523428387732759,
+      0.7685556381996083,
+      0.8180451418881443,
+      0.944150255652073
+    ],
+    "based_on": "out_of_fold"
+  },
+  "statsbomb_official_xg": {
+    "metrics_on_same_shots": {
+      "log_loss": 0.2073219290147859,
+      "brier": 0.05741149520970341,
+      "roc_auc": 0.7486338797814207
+    },
+    "note": "StatsBomb\u2019s own xG model on the same shots (reference)."
+  },
+  "model_vs_statsbomb": {
+    "mean_absolute_error_vs_statsbomb_xg": 0.1461504330062839,
+    "pearson_r_model_vs_statsbomb": 0.4944415432635666,
+    "n_shots_compared": 64,
+    "predictions_used": "out_of_fold"
+  }
+}

@@ -32,3 +32,4 @@ webapp/dist/
 
 # OS
 .DS_Store
+.venv/

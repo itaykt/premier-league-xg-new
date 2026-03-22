@@ -1,0 +1,19 @@
+{
+  "distance": 15.18426149501677,
+  "angle": 0.34221752813097844,
+  "under_pressure": 0.0,
+  "defenders_in_cone": 1.0,
+  "gk_off_line": 0.501330615092838,
+  "closest_opp_dist": 2.14009345590327,
+  "minute_norm": 0.505,
+  "open_play": 0.0,
+  "first_touch": 0.0,
+  "bp_Head": 0.0,
+  "bp_Left Foot": 0.0,
+  "bp_Right Foot": 0.0,
+  "gd_trail_2plus": 0.0,
+  "gd_trail_1": 0.0,
+  "gd_draw": 1.0,
+  "gd_lead_1": 0.0,
+  "gd_lead_2plus": 0.0
+}

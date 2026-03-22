@@ -200,6 +200,8 @@ def build_feature_frame(shots: pd.DataFrame) -> pd.DataFrame:
         minute = float(row.get("minute", 0)) if pd.notna(row.get("minute")) else 0.0
         up = row.get("under_pressure")
         under = bool(up) if pd.notna(up) else False
+        sb = row.get("shot_statsbomb_xg")
+        statsbomb_xg = float(sb) if sb is not None and pd.notna(sb) else np.nan
         rows.append(
             {
                 "match_id": row.get("match_id"),
@@ -207,6 +209,7 @@ def build_feature_frame(shots: pd.DataFrame) -> pd.DataFrame:
                 "goal": goal,
                 "x": x,
                 "y": y,
+                "statsbomb_xg": statsbomb_xg,
                 "distance": dist,
                 "angle": ang,
                 "under_pressure": under,

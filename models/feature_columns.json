@@ -1,0 +1,19 @@
+[
+  "distance",
+  "angle",
+  "under_pressure",
+  "defenders_in_cone",
+  "gk_off_line",
+  "closest_opp_dist",
+  "minute_norm",
+  "open_play",
+  "first_touch",
+  "bp_Head",
+  "bp_Left Foot",
+  "bp_Right Foot",
+  "gd_trail_2plus",
+  "gd_trail_1",
+  "gd_draw",
+  "gd_lead_1",
+  "gd_lead_2plus"
+]

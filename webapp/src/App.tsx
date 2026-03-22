@@ -56,7 +56,7 @@ export default function App() {
         <Route path="/" element={<MatchExplorer data={data} />} />
         <Route path="/players" element={<PlayerDashboard data={data} />} />
         <Route path="/teams" element={<TeamComparison data={data} />} />
-        <Route path="/model" element={<ModelExplainer />} />
+        <Route path="/model" element={<ModelExplainer data={data} />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </div>
