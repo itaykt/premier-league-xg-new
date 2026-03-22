@@ -18,6 +18,9 @@ export type MatchRow = {
 export type ShotRow = {
   matchId: number;
   teamId: number | null;
+  /** Present when export includes StatsBomb player metadata (re-run train_and_export). */
+  playerId?: number | null;
+  playerName?: string;
   minute: number;
   xg: number;
   goal: number;

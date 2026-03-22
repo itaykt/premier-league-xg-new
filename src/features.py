@@ -178,6 +178,33 @@ def _first_touch(row: pd.Series) -> bool:
     return bool(s.get("first_time", False))
 
 
+def _player_id_name(row: pd.Series) -> tuple[int | None, str]:
+    """StatsBomb: flattened player_id or nested player dict."""
+    pid = row.get("player_id")
+    if pd.notna(pid) and pid is not None:
+        try:
+            i = int(pid)
+            name = str(row.get("player_name", "") or "").strip()
+            if not name:
+                pl = row.get("player")
+                if isinstance(pl, dict) and pl.get("name"):
+                    name = str(pl["name"])
+            return i, name or f"Player {i}"
+        except (TypeError, ValueError):
+            pass
+    pl = row.get("player")
+    if isinstance(pl, dict):
+        raw = pl.get("id")
+        if raw is not None and pd.notna(raw):
+            try:
+                i = int(raw)
+                nm = str(pl.get("name", "") or "").strip()
+                return i, nm or f"Player {i}"
+            except (TypeError, ValueError):
+                pass
+    return None, ""
+
+
 def _is_open_play(row: pd.Series) -> bool:
     return _play_pattern(row) == "Regular Play"
 
@@ -216,10 +243,13 @@ def build_feature_frame(shots: pd.DataFrame) -> pd.DataFrame:
         under = bool(up) if pd.notna(up) else False
         sb = row.get("shot_statsbomb_xg")
         statsbomb_xg = float(sb) if sb is not None and pd.notna(sb) else np.nan
+        pl_id, pl_name = _player_id_name(row)
         rows.append(
             {
                 "match_id": row.get("match_id"),
                 "team_id": tid,
+                "player_id": pl_id,
+                "player_name": pl_name if pl_id is not None else "",
                 "goal": goal,
                 "x": x,
                 "y": y,

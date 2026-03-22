@@ -111,6 +111,8 @@ def export_app_json(
         mid = int(row["match_id"])
         tid = row.get("team_id")
         sb = row.get("statsbomb_xg")
+        pid = row.get("player_id")
+        pname = row.get("player_name")
         shot: dict = {
             "matchId": mid,
             "teamId": int(tid) if pd.notna(tid) else None,
@@ -122,6 +124,13 @@ def export_app_json(
             "distance": float(row.get("distance", 0)),
             "angle": float(row.get("angle", 0)),
         }
+        if pid is not None and pd.notna(pid):
+            try:
+                shot["playerId"] = int(pid)
+            except (TypeError, ValueError):
+                pass
+        if pname is not None and pd.notna(pname) and str(pname).strip():
+            shot["playerName"] = str(pname).strip()
         if sb is not None and pd.notna(sb):
             shot["statsbombXg"] = float(sb)
         shots_out.append(shot)
