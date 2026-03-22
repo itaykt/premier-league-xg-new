@@ -3,64 +3,74 @@
   "n_matches": 380,
   "cross_val_grouped_by_match": {
     "context_model": {
-      "log_loss": 0.551393448147804,
-      "brier": 0.1829016425306339,
-      "roc_auc": 0.7861006971550988
+      "log_loss": 0.5513933839422458,
+      "brier": 0.1829122642362518,
+      "roc_auc": 0.7860763012654093
     },
     "baseline_location_only": {
-      "log_loss": 0.5807537773501934,
-      "brier": 0.19577708597157217,
-      "roc_auc": 0.7645328016920535
+      "log_loss": 0.5807643481727859,
+      "brier": 0.1957869738828613,
+      "roc_auc": 0.7645330286305623
     },
     "n_splits": 5,
     "note": "Out-of-fold predictions; grouped by match_id to reduce leakage."
   },
   "in_sample_full_context": {
-    "log_loss": 0.5490901174006301,
-    "brier": 0.18197558301230243,
-    "roc_auc": 0.7912919155425645,
-    "note": "Optimistic \u2014 use cross_val_* for reporting."
+    "log_loss": 0.26972767168599426,
+    "brier": 0.07696561813061509,
+    "roc_auc": 0.7909663722517746,
+    "note": "Calibrated probabilities (Platt sigmoid on holdout groups) when n_groups>=2; optimistic if evaluated on same rows used to fit base LR \u2014 prefer cross_val_* for ranking."
+  },
+  "probability_calibration": {
+    "method": "sigmoid_platt",
+    "calib_test_size": 0.2,
+    "n_train_shots": 7882,
+    "n_calib_shots": 2026,
+    "n_train_groups": 304,
+    "n_calib_groups": 76,
+    "mean_predicted_probability_uncalibrated": 0.3968089258936717,
+    "mean_predicted_probability_calibrated": 0.10515144252573744
   },
   "calibration": {
     "strategy": "uniform_10_bins",
     "prob_true": [
-      0.010893246187363835,
-      0.02395964691046658,
-      0.03711790393013101,
-      0.05316606929510155,
-      0.07179487179487179,
-      0.12037914691943127,
-      0.17433414043583534,
-      0.27346938775510204,
-      0.4196642685851319,
-      0.5392156862745098
+      0.03989079326558471,
+      0.13564078578110383,
+      0.25089605734767023,
+      0.4625,
+      0.408,
+      0.5,
+      0.4745762711864407,
+      0.6086956521739131,
+      0.7692307692307693,
+      1.0
     ],
     "prob_pred": [
-      0.06987717520928363,
-      0.153380388665743,
-      0.2501701488768258,
-      0.3484524962095213,
-      0.448510135333453,
-      0.5485705344993846,
-      0.6455755848474978,
-      0.7481049535402665,
-      0.8454565042693286,
-      0.9432533971618949
+      0.050218740390361054,
+      0.13916117179967008,
+      0.24070068182338017,
+      0.3427860416338717,
+      0.4438888441075061,
+      0.5512609452089579,
+      0.6543884083326589,
+      0.7422446601324993,
+      0.8506490921201562,
+      0.9339872125638355
     ],
-    "based_on": "out_of_fold"
+    "based_on": "exported_model_full_sample"
   },
   "statsbomb_official_xg": {
     "metrics_on_same_shots": {
       "log_loss": 0.25499972005198407,
-      "brier": 0.0712463921833545,
+      "brier": 0.07124639218335449,
       "roc_auc": 0.8092728776710663
     },
     "note": "StatsBomb\u2019s own xG model on the same shots (reference)."
   },
   "model_vs_statsbomb": {
-    "mean_absolute_error_vs_statsbomb_xg": 0.3011814667288825,
-    "pearson_r_model_vs_statsbomb": 0.7206488304418223,
+    "mean_absolute_error_vs_statsbomb_xg": 0.04052104816258542,
+    "pearson_r_model_vs_statsbomb": 0.8322057477169965,
     "n_shots_compared": 9908,
-    "predictions_used": "out_of_fold"
+    "predictions_used": "exported_model_full_sample"
   }
 }

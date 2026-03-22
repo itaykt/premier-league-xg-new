@@ -12,7 +12,7 @@ help:
 	@echo "  make web           cd webapp && npm run dev"
 
 venv:
-	python3 -m venv .venv
+	@command -v python3.11 >/dev/null 2>&1 && python3.11 -m venv .venv || python3.12 -m venv .venv || python3 -m venv .venv
 
 install:
 	. .venv/bin/activate && pip install -r requirements.txt

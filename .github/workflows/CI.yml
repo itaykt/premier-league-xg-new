@@ -19,10 +19,14 @@ jobs:
       - name: Install Python dependencies
         run: |
           pip install -r requirements.txt
+          pip install pytest==8.3.4 httpx
 
       - name: Run training pipeline (light)
         run: |
           python scripts/train_and_export.py --max-matches 5
+
+      - name: Run tests
+        run: pytest -q
 
       # Node setup
       - name: Set up Node

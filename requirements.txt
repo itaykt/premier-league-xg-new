@@ -1,3 +1,4 @@
+# Python 3.11–3.12 only for these pins; 3.13+ (e.g. conda base) often forces source builds and PyArrow fails.
 numpy==1.26.4
 pandas==2.2.3
 pyarrow==17.0.0
