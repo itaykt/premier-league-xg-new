@@ -64,8 +64,8 @@ def fit_calibrated_logistic(
     random_state: int = 42,
 ) -> tuple[Any, LogisticRegression, dict[str, Any]]:
     """
-    Train logistic regression on a train split, then Platt scaling (sigmoid) on held-out groups only.
-    Returns the fitted CalibratedClassifierCV, the underlying LogisticRegression, and split metadata.
+    Train logistic on a train split; Platt scaling (sigmoid) on held-out groups only.
+    Returns CalibratedClassifierCV, underlying LogisticRegression, and split metadata.
     """
     gss = GroupShuffleSplit(
         n_splits=1,
@@ -89,14 +89,18 @@ def fit_calibrated_logistic(
 
 
 def logistic_from_calibrated_or_plain(model: Any) -> LogisticRegression:
-    """Underlying LogisticRegression from a CalibratedClassifierCV (cv=prefit) or the model itself."""
+    """
+    Underlying LogisticRegression from CalibratedClassifierCV (cv=prefit) or plain LR.
+    """
     if isinstance(model, LogisticRegression):
         return model
     if hasattr(model, "calibrated_classifiers_") and model.calibrated_classifiers_:
         est = model.calibrated_classifiers_[0].estimator
         if isinstance(est, LogisticRegression):
             return est
-    raise TypeError("Expected LogisticRegression or CalibratedClassifierCV from prefit sigmoid fit")
+    raise TypeError(
+        "Expected LogisticRegression or CalibratedClassifierCV (prefit sigmoid fit)"
+    )
 
 
 def train_xgboost(X: pd.DataFrame, y: np.ndarray, **kwargs: Any) -> Any:

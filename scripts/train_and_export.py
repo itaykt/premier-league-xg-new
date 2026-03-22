@@ -153,7 +153,7 @@ def export_app_json(
     print(f"Wrote {out_path}")
 
 
-def main() -> None:
+def main() -> None:  # pylint: disable=too-many-branches
     ap = argparse.ArgumentParser()
     ap.add_argument(
         "--max-matches",
@@ -179,7 +179,10 @@ def main() -> None:
     ap.add_argument(
         "--skip-webapp-copy",
         action="store_true",
-        help="Do not copy app_data.json to webapp/public/ (for CI or custom out-json paths).",
+        help=(
+            "Do not copy app_data.json to webapp/public/ "
+            "(for CI or custom --out-json paths)."
+        ),
     )
     args = ap.parse_args()
 
@@ -213,7 +216,6 @@ def main() -> None:
     fc_json.write_text(json.dumps(names, indent=2), encoding="utf-8")
     fd_json.write_text(json.dumps(defaults, indent=2), encoding="utf-8")
 
-    oof_probs: np.ndarray | None = None
     n_splits_used: int | None = None
     n_groups = len(np.unique(groups))
     if n_groups < 2:
@@ -227,7 +229,7 @@ def main() -> None:
         n_splits_used = max(2, min(5, n_groups))
         print("Grouped CV — logistic regression (full features)...")
         log_full = LogisticRegression(max_iter=2000, class_weight="balanced")
-        oof_probs, m_log = cross_val_grouped(
+        _oof_probs, m_log = cross_val_grouped(
             X,
             y,
             groups,
@@ -276,7 +278,7 @@ def main() -> None:
             "note": "Calibration skipped — need at least 2 match groups for a train/holdout split.",
         }
 
-    # Probabilities for metrics + export MUST match load_model(...).predict_proba(X)[:, 1] (same as API / disk).
+    # Metrics + export use load_model().predict_proba(X)[:, 1] (same as API / on-disk model).
     final_loaded = load_model(LOGISTIC_PKL)
     p_final = final_loaded.predict_proba(X)[:, 1].astype(float)
     if len(p_final) != len(X):
@@ -285,8 +287,11 @@ def main() -> None:
         p_uncal = lr_train_for_meta.predict_proba(X)[:, 1]
         cal_meta["mean_predicted_probability_uncalibrated"] = float(np.mean(p_uncal))
         cal_meta["mean_predicted_probability_calibrated"] = float(np.mean(p_final))
-        print("Platt (sigmoid) calibration: mean p", cal_meta["mean_predicted_probability_uncalibrated"], "→", cal_meta["mean_predicted_probability_calibrated"])
-    print(f"Export xG mean: {float(np.mean(p_final)):.6f} (from saved model predict_proba, len={len(p_final)})")
+        mu_u = cal_meta["mean_predicted_probability_uncalibrated"]
+        mu_c = cal_meta["mean_predicted_probability_calibrated"]
+        print("Platt (sigmoid) calibration: mean p", mu_u, "→", mu_c)
+    mean_xg = float(np.mean(p_final))
+    print(f"Export xG mean: {mean_xg:.6f} (saved model predict_proba, n={len(p_final)})")
 
     try:
         final_xgb = train_xgboost(X, y)
@@ -312,8 +317,9 @@ def main() -> None:
         "in_sample_full_context": {
             **insample,
             "note": (
-                "Calibrated probabilities (Platt sigmoid on holdout groups) when n_groups>=2; "
-                "optimistic if evaluated on same rows used to fit base LR — prefer cross_val_* for ranking."
+                "Calibrated probabilities (Platt sigmoid on holdout groups) when "
+                "n_groups>=2; optimistic on same rows as base LR — prefer "
+                "cross_val_* for ranking."
             ),
         },
         "probability_calibration": cal_meta,
