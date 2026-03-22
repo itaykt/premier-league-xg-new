@@ -14,8 +14,8 @@ export default function App() {
         <h2>Could not load data</h2>
         <p className="muted">{error}</p>
         <p className="muted">
-          Place <code>app_data.json</code> in <code>webapp/public/</code> (copy from{" "}
-          <code>data/predictions/app_data.json</code> after training).
+          Run <code>python scripts/train_and_export.py</code> from the repo root — it writes{" "}
+          <code>webapp/public/app_data.json</code> for Vite. Or add <code>app_data.json</code> there manually.
         </p>
       </div>
     );

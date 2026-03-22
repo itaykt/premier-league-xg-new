@@ -252,7 +252,7 @@ export function ModelExplainer({ data }: Props) {
         <div className="panel">
           <p className="muted">
             No <code>evaluation</code> block in <code>app_data.json</code>. Run{" "}
-            <code>python scripts/train_and_export.py</code> and copy the JSON to <code>webapp/public/</code>.
+            <code>python scripts/train_and_export.py</code> — it updates <code>webapp/public/app_data.json</code>.
           </p>
         </div>
       )}

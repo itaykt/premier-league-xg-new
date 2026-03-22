@@ -22,8 +22,9 @@ Open the **localhost** URL Vite prints. The dev server proxies `/api` to the API
 python3.11 -m venv .venv && source .venv/bin/activate   # or python3.12
 pip install -r requirements.txt
 python scripts/train_and_export.py --max-matches 20
-cp data/predictions/app_data.json webapp/public/app_data.json
 ```
+
+Training writes `data/predictions/app_data.json` and **copies it to `webapp/public/app_data.json`** for the Vite app (use `--skip-webapp-copy` to disable).
 
 ---
 

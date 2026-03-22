@@ -164,9 +164,8 @@ export function PlayerDashboard({ data }: Props) {
         <h2>Player dashboard</h2>
         <p className="muted">
           No <code>playerId</code> on shots in this <code>app_data.json</code>. Re-run{" "}
-          <code>python scripts/train_and_export.py</code> and copy{" "}
-          <code>data/predictions/app_data.json</code> to <code>webapp/public/</code> so exports include player
-          metadata from StatsBomb.
+          <code>python scripts/train_and_export.py</code> (it syncs JSON to <code>webapp/public/</code>) so exports
+          include player metadata from StatsBomb.
         </p>
         <div className="panel">
           <p>

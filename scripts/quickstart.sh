@@ -33,9 +33,7 @@ pip install -q -r requirements.txt
 
 echo "== Training + export (use --max-matches 15 for a fast smoke test) =="
 python scripts/train_and_export.py --max-matches 15
-
-cp -f data/predictions/app_data.json webapp/public/app_data.json
-echo "== Synced app_data.json to webapp/public/ =="
+echo "== (train_and_export.py copies app_data.json to webapp/public/) =="
 
 echo ""
 echo "Next (two terminals):"

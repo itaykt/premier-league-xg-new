@@ -27,7 +27,7 @@ train:
 	. .venv/bin/activate && python scripts/train_and_export.py
 
 train-fast:
-	. .venv/bin/activate && python scripts/train_and_export.py --max-matches 15 && cp -f data/predictions/app_data.json webapp/public/app_data.json
+	. .venv/bin/activate && python scripts/train_and_export.py --max-matches 15
 
 api:
 	. .venv/bin/activate && uvicorn api.main:app --reload --host 127.0.0.1 --port 8000

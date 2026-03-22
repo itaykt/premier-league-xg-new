@@ -12,6 +12,7 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import shutil
 import sys
 from pathlib import Path
 from typing import Any
@@ -48,6 +49,7 @@ from src.model import (  # noqa: E402
 )
 
 LOGISTIC_PKL = ROOT / "models" / "logistic_context.pkl"
+WEBAPP_PUBLIC_APP_DATA = ROOT / "webapp" / "public" / "app_data.json"
 
 
 def _json_sanitize(obj: Any) -> Any:
@@ -173,6 +175,11 @@ def main() -> None:
         "--metrics-json",
         type=str,
         default=str(ROOT / "data/predictions/metrics.json"),
+    )
+    ap.add_argument(
+        "--skip-webapp-copy",
+        action="store_true",
+        help="Do not copy app_data.json to webapp/public/ (for CI or custom out-json paths).",
     )
     args = ap.parse_args()
 
@@ -357,7 +364,12 @@ def main() -> None:
     metrics_path.write_text(json.dumps(evaluation, indent=2), encoding="utf-8")
     print(f"Wrote {metrics_path}")
 
-    export_app_json(feats, p_final, matches, team_ids, Path(args.out_json), evaluation=evaluation)
+    out_json_path = Path(args.out_json)
+    export_app_json(feats, p_final, matches, team_ids, out_json_path, evaluation=evaluation)
+    if not args.skip_webapp_copy:
+        WEBAPP_PUBLIC_APP_DATA.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(out_json_path, WEBAPP_PUBLIC_APP_DATA)
+        print(f"Copied to {WEBAPP_PUBLIC_APP_DATA} for the Vite dev server")
     print("Done.")
 
 
