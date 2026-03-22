@@ -176,3 +176,84 @@ button.primary:hover {
   color: #8b9a92;
   font-size: 0.9rem;
 }
+
+/* Player dashboard */
+.player-dash__layout {
+  display: grid;
+  grid-template-columns: minmax(280px, 1fr) minmax(320px, 1.1fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .player-dash__layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.player-dash__table-wrap {
+  max-height: min(70vh, 640px);
+  overflow: auto;
+}
+
+.player-dash__detail {
+  position: sticky;
+  top: 0;
+}
+
+.player-dash__shots {
+  max-height: 280px;
+  overflow: auto;
+  margin-top: 0.5rem;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.data-table th,
+.data-table td {
+  padding: 0.45rem 0.5rem;
+  text-align: left;
+  border-bottom: 1px solid #1f2a35;
+}
+
+.data-table th {
+  color: #8b9a92;
+  font-weight: 500;
+  position: sticky;
+  top: 0;
+  background: #111820;
+  z-index: 1;
+}
+
+.data-table th.num,
+.data-table td.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.data-table tbody tr {
+  cursor: pointer;
+}
+
+.data-table tbody tr:hover {
+  background: #151d26;
+}
+
+.data-table tbody tr.selected {
+  background: #1a2e22;
+}
+
+.data-table .ellipsis {
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.data-table--compact {
+  font-size: 0.82rem;
+}

@@ -15,7 +15,17 @@ from sklearn.metrics import brier_score_loss, log_loss, roc_auc_score
 from sklearn.model_selection import GroupKFold, GroupShuffleSplit, cross_val_predict
 import joblib
 
-META_COLS = {"match_id", "team_id", "goal", "minute", "x", "y", "statsbomb_xg"}
+META_COLS = {
+    "match_id",
+    "team_id",
+    "player_id",
+    "player_name",
+    "goal",
+    "minute",
+    "x",
+    "y",
+    "statsbomb_xg",
+}
 
 
 def _fill_numeric(X: pd.DataFrame) -> pd.DataFrame:

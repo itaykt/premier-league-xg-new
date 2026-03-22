@@ -222,7 +222,7 @@ export function ModelExplainer({ data }: Props) {
 
           {ev.model_vs_statsbomb && (
             <div className="panel">
-              <h3 style={{ marginTop: 0 }}>Your model vs StatsBomb xG</h3>
+              <h3 style={{ marginTop: 0 }}>This Model vs StatsBomb xG</h3>
               <p className="muted">
                 Mean absolute error vs StatsBomb’s published xG on the same shots:{" "}
                 <strong>{fmt(ev.model_vs_statsbomb.mean_absolute_error_vs_statsbomb_xg)}</strong>. Correlation:{" "}
