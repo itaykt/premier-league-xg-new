@@ -79,9 +79,7 @@ export function MatchExplorer({ data }: Props) {
             <strong>
               {match.homeTeam} {match.homeScore ?? "—"} – {match.awayScore ?? "—"} {match.awayTeam}
             </strong>
-            <p className="muted">
-              Model xG: {totalHome.toFixed(2)} – {totalAway.toFixed(2)} · Shots: {shots.length}
-            </p>
+            <p className="muted">{shots.length} shots</p>
           </div>
 
           <div className="panel">
@@ -106,7 +104,15 @@ export function MatchExplorer({ data }: Props) {
 
           <div className="panel">
             <h3 style={{ marginTop: 0 }}>Shot map</h3>
-            <PitchShotMap shots={shots} />
+            <PitchShotMap
+              shots={shots}
+              homeTeamId={match.homeTeamId}
+              awayTeamId={match.awayTeamId}
+              homeTeamName={match.homeTeam}
+              awayTeamName={match.awayTeam}
+              homeXg={totalHome}
+              awayXg={totalAway}
+            />
           </div>
         </>
       )}

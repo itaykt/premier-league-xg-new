@@ -16,10 +16,10 @@ Then open **two terminals** from the repo root:
 
 Open the **localhost** URL Vite prints. The dev server proxies `/api` to the API (shot simulator on the **Model explainer** page).
 
-**Manual path (same result):**
+**Manual path (same result):** use **Python 3.11 or 3.12** for the venv (not **3.13+** — see Configuration). If `.venv` was created with conda / 3.13 / 3.14, delete it first (`rm -rf .venv`).
 
 ```bash
-python3 -m venv .venv && source .venv/bin/activate
+python3.11 -m venv .venv && source .venv/bin/activate   # or python3.12
 pip install -r requirements.txt
 python scripts/train_and_export.py --max-matches 20
 cp data/predictions/app_data.json webapp/public/app_data.json
@@ -47,11 +47,9 @@ xG is the standard language for chance quality in football analytics, broadcasti
 
 ## Demo
 
-Add your own screenshot or GIF here after you run the app:
+![Match explorer and Model explainer UI](docs/demo.png)
 
-`webapp` → Match explorer (timeline + pitch) and Model explainer (metrics + calibration + simulator).
-
-Suggested path: `docs/demo.png` (optional — create when you have a capture).
+*Match explorer (timeline + pitch) and Model explainer (metrics, calibration, shot simulator). Add `docs/demo.png` after you capture a run of the app.*
 
 ---
 
@@ -67,6 +65,16 @@ Suggested path: `docs/demo.png` (optional — create when you have a capture).
 **Features (high level):** distance, angle, body part, under pressure, defenders in shot cone, GK off-line error, closest opponent distance, minute, game-state buckets, play pattern / first-touch flags.
 
 **Reference:** StatsBomb’s own **`shot_statsbomb_xg`** is **not** used as a training input (avoid leakage / fair comparison); it is stored for **evaluation vs your model** on the same shots.
+
+### Interpretability
+
+After training, **`models/logistic_interpretability.json`** lists each feature’s **coefficient** (effect on log-odds of scoring) and **odds ratio** (`exp(coefficient)`), sorted by absolute coefficient so the strongest linear terms appear first.
+
+**What the fitted model emphasizes (plain English):**
+
+- **Geometry still drives most of the signal:** farther from goal lowers predicted chance; a wider angle to the goal mouth generally raises it—consistent with how humans judge “a good chance.”
+- **Freeze-frame and pressure features move predictions beyond location:** more defenders in the shot cone and tighter defensive proximity tend to drag xG down versus the same shot shape with a clear lane.
+- **Shot type and how the ball is struck** (body-part dummies, play pattern / first-touch flags) sit on top of that, separating “same spot, different execution.”
 
 ---
 
@@ -111,7 +119,7 @@ Despite lower calibration, the model captures a similar structure of chance qual
 
 | Path | Purpose |
 |------|---------|
-| `scripts/train_and_export.py` | Train, evaluate, save `models/`, `metrics.json`, `app_data.json` |
+| `scripts/train_and_export.py` | Train, evaluate, save `models/` (including `logistic_interpretability.json`), `metrics.json`, `app_data.json` |
 | `scripts/quickstart.sh` | One-shot setup + train + copy JSON to `webapp/public/` |
 | `api/main.py` | FastAPI: `GET /api/health`, `POST /api/predict` |
 | `src/` | Data loading, features, model helpers, prediction row builder |
@@ -122,6 +130,7 @@ Despite lower calibration, the model captures a similar structure of chance qual
 
 ## Configuration
 
+- **Python:** Use **3.11** or **3.12** only (same as CI). **3.13+** (including **Anaconda**’s default `python`) usually makes `pip` **build** NumPy/PyArrow from source with these pins, which fails on PyArrow. Fix: `conda deactivate`, then `python3.11 -m venv .venv` (Homebrew/pyenv) — do **not** `pip install -r requirements.txt` into the conda base.
 - **Data:** StatsBomb Open Data — competition **2**, season **27** (Premier League **2015/16**).
 - **macOS XGBoost:** install OpenMP: `brew install libomp` if the XGBoost wheel fails to load.
 

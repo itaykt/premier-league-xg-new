@@ -100,43 +100,76 @@ button.primary:hover {
   background: #234d34;
 }
 
-.pitch {
+/* Shot map: SVG pitch (StatsBomb 120×80) */
+.pitch-shotmap {
+  width: 100%;
+  max-width: 760px;
+}
+
+.pitch-shotmap__xg {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35rem 0.75rem;
+  margin-bottom: 0.5rem;
+  font-size: 0.95rem;
+}
+
+.pitch-shotmap__xg-home {
+  color: #7ee787;
+}
+
+.pitch-shotmap__xg-away {
+  color: #74c0fc;
+}
+
+.pitch-shotmap__xg-sep {
+  color: #5c6c64;
+}
+
+.pitch-shotmap__note {
+  font-size: 0.82rem;
+  margin-bottom: 0.65rem;
+  line-height: 1.35;
+}
+
+.pitch.pitch--svg {
   position: relative;
   width: 100%;
-  max-width: 720px;
-  aspect-ratio: 120 / 80;
-  background: linear-gradient(180deg, #1a4d2e 0%, #143d25 100%);
   border: 2px solid #2d6a4a;
   border-radius: 8px;
   overflow: hidden;
+  background: #163d28;
 }
 
-.pitch::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border: 2px solid rgba(255, 255, 255, 0.15);
-  border-radius: 6px;
-  pointer-events: none;
+.pitch__svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 120 / 80;
+  vertical-align: middle;
 }
 
-.shot-dot {
-  position: absolute;
-  width: 8px;
-  height: 8px;
-  margin-left: -4px;
-  margin-top: -4px;
-  border-radius: 50%;
-  opacity: 0.85;
+.pitch__svg .shot {
+  cursor: default;
 }
 
-.shot-dot.goal {
-  background: #ffd60a;
-  box-shadow: 0 0 6px #ffd60a;
+.pitch__svg .shot--home {
+  fill: rgba(126, 231, 135, 0.82);
+  stroke: rgba(26, 62, 34, 0.95);
+  stroke-width: 0.2;
 }
 
-.shot-dot.miss {
-  background: #adb5bd;
+.pitch__svg .shot--away {
+  fill: rgba(116, 192, 252, 0.82);
+  stroke: rgba(26, 46, 61, 0.95);
+  stroke-width: 0.2;
+}
+
+.pitch__svg .shot[data-goal="1"] {
+  stroke: #ffd60a;
+  stroke-width: 0.45;
+  filter: drop-shadow(0 0 1.5px rgba(255, 214, 10, 0.9));
 }
 
 .muted {

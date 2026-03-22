@@ -9,10 +9,10 @@ from typing import Any
 
 import numpy as np
 import pandas as pd
-from sklearn.calibration import calibration_curve
+from sklearn.calibration import CalibratedClassifierCV, calibration_curve
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import brier_score_loss, log_loss, roc_auc_score
-from sklearn.model_selection import GroupKFold, cross_val_predict
+from sklearn.model_selection import GroupKFold, GroupShuffleSplit, cross_val_predict
 import joblib
 
 META_COLS = {"match_id", "team_id", "goal", "minute", "x", "y", "statsbomb_xg"}
@@ -45,6 +45,50 @@ def train_logistic(X: pd.DataFrame, y: np.ndarray, **kwargs: Any) -> LogisticReg
     return model
 
 
+def fit_calibrated_logistic(
+    X: pd.DataFrame,
+    y: np.ndarray,
+    groups: np.ndarray,
+    *,
+    calib_test_size: float = 0.2,
+    random_state: int = 42,
+) -> tuple[Any, LogisticRegression, dict[str, Any]]:
+    """
+    Train logistic regression on a train split, then Platt scaling (sigmoid) on held-out groups only.
+    Returns the fitted CalibratedClassifierCV, the underlying LogisticRegression, and split metadata.
+    """
+    gss = GroupShuffleSplit(
+        n_splits=1,
+        test_size=calib_test_size,
+        random_state=random_state,
+    )
+    idx_train, idx_cal = next(gss.split(X, y, groups))
+    lr = LogisticRegression(max_iter=2000, class_weight="balanced", random_state=42)
+    lr.fit(X.iloc[idx_train], y[idx_train])
+    cal = CalibratedClassifierCV(lr, method="sigmoid", cv="prefit")
+    cal.fit(X.iloc[idx_cal], y[idx_cal])
+    meta = {
+        "method": "sigmoid_platt",
+        "calib_test_size": calib_test_size,
+        "n_train_shots": int(len(idx_train)),
+        "n_calib_shots": int(len(idx_cal)),
+        "n_train_groups": int(len(np.unique(groups[idx_train]))),
+        "n_calib_groups": int(len(np.unique(groups[idx_cal]))),
+    }
+    return cal, lr, meta
+
+
+def logistic_from_calibrated_or_plain(model: Any) -> LogisticRegression:
+    """Underlying LogisticRegression from a CalibratedClassifierCV (cv=prefit) or the model itself."""
+    if isinstance(model, LogisticRegression):
+        return model
+    if hasattr(model, "calibrated_classifiers_") and model.calibrated_classifiers_:
+        est = model.calibrated_classifiers_[0].estimator
+        if isinstance(est, LogisticRegression):
+            return est
+    raise TypeError("Expected LogisticRegression or CalibratedClassifierCV from prefit sigmoid fit")
+
+
 def train_xgboost(X: pd.DataFrame, y: np.ndarray, **kwargs: Any) -> Any:
     from xgboost import XGBClassifier
 
@@ -73,8 +117,17 @@ def evaluate_probs(y_true: np.ndarray, p: np.ndarray) -> dict[str, float]:
     return out
 
 
-def calibration_bins(y_true: np.ndarray, p: np.ndarray, n_bins: int = 10) -> tuple[np.ndarray, np.ndarray]:
-    prob_true, prob_pred = calibration_curve(y_true, p, n_bins=n_bins, strategy="uniform")
+def calibration_bins(
+    y_true: np.ndarray,
+    p: np.ndarray,
+    n_bins: int = 10,
+) -> tuple[np.ndarray, np.ndarray]:
+    prob_true, prob_pred = calibration_curve(
+        y_true,
+        p,
+        n_bins=n_bins,
+        strategy="uniform",
+    )
     return prob_true, prob_pred
 
 
@@ -111,3 +164,37 @@ def save_model(model: Any, path: str | Path) -> None:
 
 def load_model(path: str | Path) -> Any:
     return joblib.load(path)
+
+
+def logistic_interpretability_payload(
+    model: LogisticRegression,
+    feature_names: list[str],
+) -> dict[str, Any]:
+    """
+    Compact summary for the fitted binary logistic model: coefs and odds ratios (exp(coef)).
+    Feature rows are sorted by |coefficient| descending for quick reading.
+    """
+    coef = np.asarray(model.coef_, dtype=float).ravel()
+    intercept = float(np.asarray(model.intercept_, dtype=float).ravel()[0])
+    if len(coef) != len(feature_names):
+        raise ValueError("feature_names length must match model.coef_")
+    rows: list[dict[str, Any]] = []
+    for name, c in zip(feature_names, coef, strict=True):
+        c = float(c)
+        rows.append(
+            {
+                "name": name,
+                "coefficient": c,
+                "odds_ratio": float(np.exp(c)),
+            }
+        )
+    rows.sort(key=lambda r: abs(r["coefficient"]), reverse=True)
+    return {
+        "model": "logistic_context",
+        "intercept": intercept,
+        "features": rows,
+        "note": (
+            "odds_ratio = exp(coefficient): multiplicative change in odds per one-unit "
+            "increase in that feature, holding others fixed (approximate; features correlate)."
+        ),
+    }

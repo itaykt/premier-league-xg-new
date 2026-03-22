@@ -1,0 +1,97 @@
+{
+  "model": "logistic_context",
+  "intercept": 1.103016293212317,
+  "features": [
+    {
+      "name": "angle",
+      "coefficient": 1.5383155989722566,
+      "odds_ratio": 4.656739843831564
+    },
+    {
+      "name": "bp_Other",
+      "coefficient": 1.180273409109973,
+      "odds_ratio": 3.255264100091459
+    },
+    {
+      "name": "bp_Head",
+      "coefficient": -0.8971709587052841,
+      "odds_ratio": 0.4077214906175209
+    },
+    {
+      "name": "defenders_in_cone",
+      "coefficient": -0.4350283592069931,
+      "odds_ratio": 0.6472463114256387
+    },
+    {
+      "name": "bp_Right Foot",
+      "coefficient": 0.3360207540769876,
+      "odds_ratio": 1.399368067102155
+    },
+    {
+      "name": "gd_lead_1",
+      "coefficient": 0.2936700098031991,
+      "odds_ratio": 1.3413412011802937
+    },
+    {
+      "name": "first_touch",
+      "coefficient": -0.2808822798466634,
+      "odds_ratio": 0.7551172227634438
+    },
+    {
+      "name": "closest_opp_dist",
+      "coefficient": 0.21919534018570677,
+      "odds_ratio": 1.2450744660118436
+    },
+    {
+      "name": "bp_Left Foot",
+      "coefficient": 0.21164672035335302,
+      "odds_ratio": 1.2357112563210273
+    },
+    {
+      "name": "gd_trail_2plus",
+      "coefficient": 0.1787997620440569,
+      "odds_ratio": 1.1957812793945743
+    },
+    {
+      "name": "gd_lead_2plus",
+      "coefficient": 0.15638894460919367,
+      "odds_ratio": 1.1692809001609004
+    },
+    {
+      "name": "distance",
+      "coefficient": -0.1202263139579248,
+      "odds_ratio": 0.8867197369541951
+    },
+    {
+      "name": "gd_draw",
+      "coefficient": 0.11162608919658447,
+      "odds_ratio": 1.1180947147821902
+    },
+    {
+      "name": "gd_trail_1",
+      "coefficient": 0.09028511918197525,
+      "odds_ratio": 1.0944862982604724
+    },
+    {
+      "name": "minute_norm",
+      "coefficient": 0.06230864890671229,
+      "odds_ratio": 1.0642907862264643
+    },
+    {
+      "name": "open_play",
+      "coefficient": -0.05773736417691569,
+      "odds_ratio": 0.9438978162656392
+    },
+    {
+      "name": "under_pressure",
+      "coefficient": -0.048101070897848944,
+      "odds_ratio": 0.953037457857997
+    },
+    {
+      "name": "gk_off_line",
+      "coefficient": -0.026132830549315894,
+      "odds_ratio": 0.9742056767387605
+    }
+  ],
+  "note": "odds_ratio = exp(coefficient): multiplicative change in odds per one-unit increase in that feature, holding others fixed (approximate; features correlate)."
+}

@@ -10,32 +10,41 @@ from __future__ import annotations
 import sys
 from contextlib import asynccontextmanager
 from pathlib import Path
-
-ROOT = Path(__file__).resolve().parents[1]
-if str(ROOT) not in sys.path:
-    sys.path.insert(0, str(ROOT))
+from typing import Any
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
 from src.model import _fill_numeric, load_model
 from src.prediction import build_prediction_row, load_feature_artifacts
 
-_model = None
-_cols: list[str] = []
-_defaults: dict[str, float] = {}
+STATE: dict[str, Any] = {
+    "model": None,
+    "cols": [],
+    "defaults": {},
+}
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
-    global _model, _cols, _defaults
+async def lifespan(_unused_app: FastAPI):
+    """Load logistic model and feature metadata on startup."""
     pkl = ROOT / "models" / "logistic_context.pkl"
     if pkl.is_file():
-        _model = load_model(pkl)
-        _cols, _defaults = load_feature_artifacts(ROOT)
+        STATE["model"] = load_model(pkl)
+        cols, defaults = load_feature_artifacts(ROOT)
+        STATE["cols"] = cols
+        STATE["defaults"] = defaults
     else:
-        print("WARN: models/logistic_context.pkl not found — run: python scripts/train_and_export.py")
+        msg = (
+            "WARN: models/logistic_context.pkl not found — "
+            "run: python scripts/train_and_export.py"
+        )
+        print(msg)
     yield
 
 
@@ -49,33 +58,58 @@ app.add_middleware(
 
 
 class PredictBody(BaseModel):
-    x: float = Field(..., ge=0, le=120, description="StatsBomb pitch x (0–120), goal at high x")
+    """Request body for synthetic shot features (StatsBomb-style pitch coordinates)."""
+
+    x: float = Field(
+        ...,
+        ge=0,
+        le=120,
+        description="StatsBomb pitch x (0–120), goal at high x",
+    )
     y: float = Field(..., ge=0, le=80, description="StatsBomb pitch y (0–80)")
     body_part: str = "Right Foot"
     under_pressure: bool = False
     defenders_in_cone: int = Field(2, ge=0, le=22)
-    gk_off_line: float | None = Field(None, description="Optional; defaults to training median")
-    closest_opp_dist: float | None = Field(None, description="Optional; defaults to training median")
+    gk_off_line: float | None = Field(
+        None,
+        description="Optional; defaults to training median",
+    )
+    closest_opp_dist: float | None = Field(
+        None,
+        description="Optional; defaults to training median",
+    )
     minute_norm: float = Field(0.5, ge=0, le=1)
-    goal_diff: int = Field(0, ge=-5, le=5, description="Shooting team minus opponent")
+    goal_diff: int = Field(
+        0,
+        ge=-5,
+        le=5,
+        description="Shooting team minus opponent",
+    )
     open_play: bool = True
     first_touch: bool = False
 
 
 @app.get("/api/health")
 def health() -> dict:
-    ok = _model is not None and len(_cols) > 0
-    return {"ok": ok, "model": "logistic_context", "n_features": len(_cols)}
+    """Return whether the model and feature schema are loaded."""
+    cols = STATE["cols"]
+    model = STATE["model"]
+    ok = model is not None and len(cols) > 0
+    return {"ok": ok, "model": "logistic_context", "n_features": len(cols)}
 
 
 @app.post("/api/predict")
 def predict(body: PredictBody) -> dict:
-    if _model is None:
+    """Return predicted xG for one row of features."""
+    model = STATE["model"]
+    cols = STATE["cols"]
+    defaults = STATE["defaults"]
+    if model is None:
         raise HTTPException(503, "Train the model first: python scripts/train_and_export.py")
     try:
-        X = build_prediction_row(
-            _cols,
-            _defaults,
+        features = build_prediction_row(
+            cols,
+            defaults,
             x=body.x,
             y=body.y,
             body_part=body.body_part,
@@ -88,8 +122,8 @@ def predict(body: PredictBody) -> dict:
             open_play=body.open_play,
             first_touch=body.first_touch,
         )
-        X = _fill_numeric(X)
-        p = float(_model.predict_proba(X)[0, 1])
+        features = _fill_numeric(features)
+        p = float(model.predict_proba(features)[0, 1])
     except Exception as e:  # pragma: no cover
         raise HTTPException(400, str(e)) from e
-    return {"xg": p, "features_used": len(_cols)}
+    return {"xg": p, "features_used": len(cols)}

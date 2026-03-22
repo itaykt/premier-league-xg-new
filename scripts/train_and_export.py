@@ -18,6 +18,8 @@ from typing import Any
 
 import numpy as np
 import pandas as pd
+from sklearn.base import clone
+from sklearn.linear_model import LogisticRegression
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
@@ -35,13 +37,17 @@ from src.model import (  # noqa: E402
     calibration_bins,
     cross_val_grouped,
     evaluate_probs,
+    fit_calibrated_logistic,
+    load_model,
+    logistic_from_calibrated_or_plain,
+    logistic_interpretability_payload,
     save_model,
     split_features_labels,
     train_logistic,
     train_xgboost,
 )
-from sklearn.base import clone  # noqa: E402
-from sklearn.linear_model import LogisticRegression  # noqa: E402
+
+LOGISTIC_PKL = ROOT / "models" / "logistic_context.pkl"
 
 
 def _json_sanitize(obj: Any) -> Any:
@@ -138,10 +144,27 @@ def export_app_json(
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--max-matches", type=int, default=None, help="Limit matches for a fast dev run")
-    ap.add_argument("--processed", type=str, default=str(ROOT / "data/processed/shots_features.parquet"))
-    ap.add_argument("--out-json", type=str, default=str(ROOT / "data/predictions/app_data.json"))
-    ap.add_argument("--metrics-json", type=str, default=str(ROOT / "data/predictions/metrics.json"))
+    ap.add_argument(
+        "--max-matches",
+        type=int,
+        default=None,
+        help="Limit matches for a fast dev run",
+    )
+    ap.add_argument(
+        "--processed",
+        type=str,
+        default=str(ROOT / "data/processed/shots_features.parquet"),
+    )
+    ap.add_argument(
+        "--out-json",
+        type=str,
+        default=str(ROOT / "data/predictions/app_data.json"),
+    )
+    ap.add_argument(
+        "--metrics-json",
+        type=str,
+        default=str(ROOT / "data/predictions/metrics.json"),
+    )
     args = ap.parse_args()
 
     print("Loading shots (StatsBomb API / open data)...")
@@ -169,33 +192,86 @@ def main() -> None:
     med = X.median(numeric_only=True)
     defaults = {c: float(med[c]) if pd.notna(med[c]) else 0.0 for c in names}
     (ROOT / "models").mkdir(parents=True, exist_ok=True)
-    (ROOT / "models" / "feature_columns.json").write_text(json.dumps(names, indent=2), encoding="utf-8")
-    (ROOT / "models" / "feature_defaults.json").write_text(json.dumps(defaults, indent=2), encoding="utf-8")
+    fc_json = ROOT / "models" / "feature_columns.json"
+    fd_json = ROOT / "models" / "feature_defaults.json"
+    fc_json.write_text(json.dumps(names, indent=2), encoding="utf-8")
+    fd_json.write_text(json.dumps(defaults, indent=2), encoding="utf-8")
 
     oof_probs: np.ndarray | None = None
     n_splits_used: int | None = None
     n_groups = len(np.unique(groups))
     if n_groups < 2:
-        print("Skipping grouped CV (need at least 2 matches). Use without --max-matches or max-matches>=2.")
+        print(
+            "Skipping grouped CV (need at least 2 matches). "
+            "Use without --max-matches or max-matches>=2.",
+        )
         m_log = {}
         m_base = {}
     else:
         n_splits_used = max(2, min(5, n_groups))
         print("Grouped CV — logistic regression (full features)...")
         log_full = LogisticRegression(max_iter=2000, class_weight="balanced")
-        oof_probs, m_log = cross_val_grouped(X, y, groups, clone(log_full), n_splits=n_splits_used)
+        oof_probs, m_log = cross_val_grouped(
+            X,
+            y,
+            groups,
+            clone(log_full),
+            n_splits=n_splits_used,
+        )
         print("  metrics:", m_log)
 
         base_cols = baseline_feature_subset(names)
         X_base = X[base_cols] if base_cols else X
         print("Grouped CV — logistic baseline (location-heavy)...")
         log_base = LogisticRegression(max_iter=2000, class_weight="balanced")
-        _oof_base, m_base = cross_val_grouped(X_base, y, groups, clone(log_base), n_splits=n_splits_used)
+        _oof_base, m_base = cross_val_grouped(
+            X_base,
+            y,
+            groups,
+            clone(log_base),
+            n_splits=n_splits_used,
+        )
         print("  metrics:", m_base)
 
     print("Training final models on full data...")
-    final_log = train_logistic(X, y)
-    save_model(final_log, ROOT / "models/logistic_context.pkl")
+    cal_meta: dict[str, Any] = {}
+    lr_train_for_meta: LogisticRegression | None = None
+    if n_groups >= 2:
+        final_model, lr_train, cal_meta = fit_calibrated_logistic(X, y, groups)
+        lr_train_for_meta = lr_train
+        save_model(final_model, LOGISTIC_PKL)
+        inner_lr = logistic_from_calibrated_or_plain(final_model)
+        interp = _json_sanitize(logistic_interpretability_payload(inner_lr, names))
+        (ROOT / "models" / "logistic_interpretability.json").write_text(
+            json.dumps(interp, indent=2),
+            encoding="utf-8",
+        )
+        print(f"Wrote {ROOT / 'models/logistic_interpretability.json'}")
+    else:
+        final_log = train_logistic(X, y)
+        save_model(final_log, LOGISTIC_PKL)
+        interp = _json_sanitize(logistic_interpretability_payload(final_log, names))
+        (ROOT / "models" / "logistic_interpretability.json").write_text(
+            json.dumps(interp, indent=2),
+            encoding="utf-8",
+        )
+        print(f"Wrote {ROOT / 'models/logistic_interpretability.json'}")
+        cal_meta = {
+            "note": "Calibration skipped — need at least 2 match groups for a train/holdout split.",
+        }
+
+    # Probabilities for metrics + export MUST match load_model(...).predict_proba(X)[:, 1] (same as API / disk).
+    final_loaded = load_model(LOGISTIC_PKL)
+    p_final = final_loaded.predict_proba(X)[:, 1].astype(float)
+    if len(p_final) != len(X):
+        raise RuntimeError(f"predict_proba length {len(p_final)} != X rows {len(X)}")
+    if n_groups >= 2 and lr_train_for_meta is not None:
+        p_uncal = lr_train_for_meta.predict_proba(X)[:, 1]
+        cal_meta["mean_predicted_probability_uncalibrated"] = float(np.mean(p_uncal))
+        cal_meta["mean_predicted_probability_calibrated"] = float(np.mean(p_final))
+        print("Platt (sigmoid) calibration: mean p", cal_meta["mean_predicted_probability_uncalibrated"], "→", cal_meta["mean_predicted_probability_calibrated"])
+    print(f"Export xG mean: {float(np.mean(p_final)):.6f} (from saved model predict_proba, len={len(p_final)})")
+
     try:
         final_xgb = train_xgboost(X, y)
         save_model(final_xgb, ROOT / "models/xgb_context.pkl")
@@ -203,12 +279,11 @@ def main() -> None:
     except Exception as e:  # pragma: no cover — optional OpenMP / libomp on macOS
         print("Skipping XGBoost (install libomp or fix xgboost):", e)
 
-    p_final = final_log.predict_proba(X)[:, 1]
     insample = evaluate_probs(y, p_final)
-    print("In-sample logistic (optimistic — same data as training):", insample)
+    print("In-sample (calibrated if n_groups>=2 else raw logistic):", insample)
 
-    # Evaluation block for README / frontend
-    cal_pt, cal_pp = calibration_bins(y, oof_probs if oof_probs is not None else p_final, n_bins=10)
+    # Evaluation block for README / frontend (calibration bins = same probs as app export)
+    cal_pt, cal_pp = calibration_bins(y, p_final, n_bins=10)
     evaluation: dict = {
         "n_shots": int(len(y)),
         "n_matches": int(n_groups),
@@ -220,13 +295,17 @@ def main() -> None:
         },
         "in_sample_full_context": {
             **insample,
-            "note": "Optimistic — use cross_val_* for reporting.",
+            "note": (
+                "Calibrated probabilities (Platt sigmoid on holdout groups) when n_groups>=2; "
+                "optimistic if evaluated on same rows used to fit base LR — prefer cross_val_* for ranking."
+            ),
         },
+        "probability_calibration": cal_meta,
         "calibration": {
             "strategy": "uniform_10_bins",
             "prob_true": cal_pt.tolist(),
             "prob_pred": cal_pp.tolist(),
-            "based_on": "out_of_fold" if oof_probs is not None else "in_sample",
+            "based_on": "exported_model_full_sample",
         },
     }
 
@@ -240,7 +319,7 @@ def main() -> None:
                 "metrics_on_same_shots": evaluate_probs(y_sb, sb_clip),
                 "note": "StatsBomb’s own xG model on the same shots (reference).",
             }
-            pred_cmp = oof_probs if oof_probs is not None else p_final
+            pred_cmp = p_final
             diff = np.abs(pred_cmp[mask] - sb[mask])
             r_val = float("nan")
             try:
@@ -251,7 +330,7 @@ def main() -> None:
                 "mean_absolute_error_vs_statsbomb_xg": float(np.mean(diff)),
                 "pearson_r_model_vs_statsbomb": r_val,
                 "n_shots_compared": int(mask.sum()),
-                "predictions_used": "out_of_fold" if oof_probs is not None else "in_sample",
+                "predictions_used": "exported_model_full_sample",
             }
 
     matches = load_matches(DEFAULT_COMPETITION_ID, DEFAULT_SEASON_ID)
