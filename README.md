@@ -70,27 +70,42 @@ Suggested path: `docs/demo.png` (optional — create when you have a capture).
 
 ---
 
-## Results
+## 📊 Results (Grouped Cross-Validation)
 
-Metrics are written to **`data/predictions/metrics.json`** and embedded in **`data/predictions/app_data.json`** under **`evaluation`** after each training run. **Use cross-validated** numbers for portfolios; in-sample metrics are labeled as optimistic.
+Dataset: 9,908 shots across 380 matches
 
-Typical fields:
+| Model                    | Log Loss ↓ | Brier ↓ | ROC-AUC ↑ |
+|-------------------------|-----------|--------|----------|
+| Full xG Model           | 0.551     | 0.183  | 0.786    |
+| Location Baseline       | 0.581     | 0.196  | 0.765    |
 
-- **Log loss** (lower is better)
-- **Brier score**
-- **ROC-AUC**
-- **Calibration curve** (10 uniform bins)
-- **MAE / correlation vs StatsBomb xG** (same shots)
-
-Replace the table below with your latest CV numbers after a full-season run:
-
-| Metric (grouped CV, context model) | Value |
-|-------------------------------------|-------|
-| Log loss | *run training* |
-| Brier | *run training* |
-| ROC-AUC | *run training* |
+The full model consistently outperforms a location-only baseline, demonstrating the value of contextual features beyond shot geometry.
 
 ---
+
+## 📈 Calibration
+
+The model shows reasonable ranking performance (ROC-AUC), but is not perfectly calibrated, tending to overestimate probabilities in higher bins.
+
+---
+
+## ⚖️ Comparison to StatsBomb xG
+
+| Model                | Log Loss ↓ | Brier ↓ | ROC-AUC ↑ |
+|---------------------|-----------|--------|----------|
+| This model          | 0.551     | 0.183  | 0.786    |
+| StatsBomb xG        | 0.255     | 0.071  | 0.809    |
+
+StatsBomb’s model significantly outperforms this implementation, likely due to richer features such as freeze-frame player positions and defensive pressure.
+
+---
+
+## 🔍 Alignment with StatsBomb
+
+- Pearson correlation: **0.72**
+- Mean absolute error: **0.30**
+
+Despite lower calibration, the model captures a similar structure of chance quality.
 
 ## Repository layout
 

@@ -11,19 +11,24 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
-GOAL_CENTER = np.array([120.0, 40.0], dtype=float)
-POST_LEFT = np.array([120.0, 36.0], dtype=float)
-POST_RIGHT = np.array([120.0, 44.0], dtype=float)
+GOAL_LINE_X = 120.0
+GOAL_CENTER_Y = 40.0
+POST_Y_LEFT = 36.0
+POST_Y_RIGHT = 44.0
+
+GOAL_CENTER = np.array([GOAL_LINE_X, GOAL_CENTER_Y], dtype=float)
+POST_LEFT = np.array([GOAL_LINE_X, POST_Y_LEFT], dtype=float)
+POST_RIGHT = np.array([GOAL_LINE_X, POST_Y_RIGHT], dtype=float)
 
 
 def shot_distance(x: float, y: float) -> float:
-    return float(np.hypot(120.0 - x, 40.0 - y))
+    return float(np.hypot(GOAL_LINE_X - x, GOAL_CENTER_Y - y))
 
 
 def shot_angle_radians(x: float, y: float) -> float:
     """Angle subtended at (x,y) by the goal mouth, signed width in radians."""
-    a = math.atan2(44.0 - y, 120.0 - x)
-    b = math.atan2(36.0 - y, 120.0 - x)
+    a = math.atan2(POST_Y_RIGHT - y, GOAL_LINE_X - x)
+    b = math.atan2(POST_Y_LEFT - y, GOAL_LINE_X - x)
     return abs(a - b)
 
 

@@ -39,6 +39,7 @@ def split_features_labels(df: pd.DataFrame) -> tuple[pd.DataFrame, np.ndarray, l
 def train_logistic(X: pd.DataFrame, y: np.ndarray, **kwargs: Any) -> LogisticRegression:
     kwargs.setdefault("max_iter", 2000)
     kwargs.setdefault("class_weight", "balanced")
+    kwargs.setdefault("random_state", 42)
     model = LogisticRegression(**kwargs)
     model.fit(X, y)
     return model
