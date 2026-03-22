@@ -83,6 +83,8 @@ def build_prediction_row(
 
 def load_feature_artifacts(root: Path | str) -> tuple[list[str], dict[str, float]]:
     root = Path(root)
-    cols: list[str] = json.loads((root / "models" / "feature_columns.json").read_text(encoding="utf-8"))
-    defaults: dict[str, float] = json.loads((root / "models" / "feature_defaults.json").read_text(encoding="utf-8"))
+    cols_path = root / "models" / "feature_columns.json"
+    def_path = root / "models" / "feature_defaults.json"
+    cols: list[str] = json.loads(cols_path.read_text(encoding="utf-8"))
+    defaults: dict[str, float] = json.loads(def_path.read_text(encoding="utf-8"))
     return cols, defaults

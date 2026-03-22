@@ -5,7 +5,6 @@ Load StatsBomb open data and build shot-level tables with freeze frames and scor
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
 
 import pandas as pd
 
@@ -230,5 +229,13 @@ def match_metadata_table(
     season_id: int = DEFAULT_SEASON_ID,
 ) -> pd.DataFrame:
     m = load_matches(competition_id, season_id)
-    keep = [c for c in ["match_id", "match_date", "home_team", "away_team", "home_score", "away_score"] if c in m.columns]
+    want = [
+        "match_id",
+        "match_date",
+        "home_team",
+        "away_team",
+        "home_score",
+        "away_score",
+    ]
+    keep = [c for c in want if c in m.columns]
     return m[keep] if keep else m

@@ -73,8 +73,17 @@ def evaluate_probs(y_true: np.ndarray, p: np.ndarray) -> dict[str, float]:
     return out
 
 
-def calibration_bins(y_true: np.ndarray, p: np.ndarray, n_bins: int = 10) -> tuple[np.ndarray, np.ndarray]:
-    prob_true, prob_pred = calibration_curve(y_true, p, n_bins=n_bins, strategy="uniform")
+def calibration_bins(
+    y_true: np.ndarray,
+    p: np.ndarray,
+    n_bins: int = 10,
+) -> tuple[np.ndarray, np.ndarray]:
+    prob_true, prob_pred = calibration_curve(
+        y_true,
+        p,
+        n_bins=n_bins,
+        strategy="uniform",
+    )
     return prob_true, prob_pred
 
 

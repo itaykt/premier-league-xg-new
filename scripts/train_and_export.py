@@ -18,6 +18,8 @@ from typing import Any
 
 import numpy as np
 import pandas as pd
+from sklearn.base import clone
+from sklearn.linear_model import LogisticRegression
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
@@ -40,8 +42,6 @@ from src.model import (  # noqa: E402
     train_logistic,
     train_xgboost,
 )
-from sklearn.base import clone  # noqa: E402
-from sklearn.linear_model import LogisticRegression  # noqa: E402
 
 
 def _json_sanitize(obj: Any) -> Any:
@@ -138,10 +138,27 @@ def export_app_json(
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--max-matches", type=int, default=None, help="Limit matches for a fast dev run")
-    ap.add_argument("--processed", type=str, default=str(ROOT / "data/processed/shots_features.parquet"))
-    ap.add_argument("--out-json", type=str, default=str(ROOT / "data/predictions/app_data.json"))
-    ap.add_argument("--metrics-json", type=str, default=str(ROOT / "data/predictions/metrics.json"))
+    ap.add_argument(
+        "--max-matches",
+        type=int,
+        default=None,
+        help="Limit matches for a fast dev run",
+    )
+    ap.add_argument(
+        "--processed",
+        type=str,
+        default=str(ROOT / "data/processed/shots_features.parquet"),
+    )
+    ap.add_argument(
+        "--out-json",
+        type=str,
+        default=str(ROOT / "data/predictions/app_data.json"),
+    )
+    ap.add_argument(
+        "--metrics-json",
+        type=str,
+        default=str(ROOT / "data/predictions/metrics.json"),
+    )
     args = ap.parse_args()
 
     print("Loading shots (StatsBomb API / open data)...")
@@ -169,28 +186,45 @@ def main() -> None:
     med = X.median(numeric_only=True)
     defaults = {c: float(med[c]) if pd.notna(med[c]) else 0.0 for c in names}
     (ROOT / "models").mkdir(parents=True, exist_ok=True)
-    (ROOT / "models" / "feature_columns.json").write_text(json.dumps(names, indent=2), encoding="utf-8")
-    (ROOT / "models" / "feature_defaults.json").write_text(json.dumps(defaults, indent=2), encoding="utf-8")
+    fc_json = ROOT / "models" / "feature_columns.json"
+    fd_json = ROOT / "models" / "feature_defaults.json"
+    fc_json.write_text(json.dumps(names, indent=2), encoding="utf-8")
+    fd_json.write_text(json.dumps(defaults, indent=2), encoding="utf-8")
 
     oof_probs: np.ndarray | None = None
     n_splits_used: int | None = None
     n_groups = len(np.unique(groups))
     if n_groups < 2:
-        print("Skipping grouped CV (need at least 2 matches). Use without --max-matches or max-matches>=2.")
+        print(
+            "Skipping grouped CV (need at least 2 matches). "
+            "Use without --max-matches or max-matches>=2.",
+        )
         m_log = {}
         m_base = {}
     else:
         n_splits_used = max(2, min(5, n_groups))
         print("Grouped CV — logistic regression (full features)...")
         log_full = LogisticRegression(max_iter=2000, class_weight="balanced")
-        oof_probs, m_log = cross_val_grouped(X, y, groups, clone(log_full), n_splits=n_splits_used)
+        oof_probs, m_log = cross_val_grouped(
+            X,
+            y,
+            groups,
+            clone(log_full),
+            n_splits=n_splits_used,
+        )
         print("  metrics:", m_log)
 
         base_cols = baseline_feature_subset(names)
         X_base = X[base_cols] if base_cols else X
         print("Grouped CV — logistic baseline (location-heavy)...")
         log_base = LogisticRegression(max_iter=2000, class_weight="balanced")
-        _oof_base, m_base = cross_val_grouped(X_base, y, groups, clone(log_base), n_splits=n_splits_used)
+        _oof_base, m_base = cross_val_grouped(
+            X_base,
+            y,
+            groups,
+            clone(log_base),
+            n_splits=n_splits_used,
+        )
         print("  metrics:", m_base)
 
     print("Training final models on full data...")
@@ -208,7 +242,8 @@ def main() -> None:
     print("In-sample logistic (optimistic — same data as training):", insample)
 
     # Evaluation block for README / frontend
-    cal_pt, cal_pp = calibration_bins(y, oof_probs if oof_probs is not None else p_final, n_bins=10)
+    cal_probs = oof_probs if oof_probs is not None else p_final
+    cal_pt, cal_pp = calibration_bins(y, cal_probs, n_bins=10)
     evaluation: dict = {
         "n_shots": int(len(y)),
         "n_matches": int(n_groups),

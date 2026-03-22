@@ -41,11 +41,14 @@ def plot_shot_map(
             else:
                 continue
             g = row.get(outcome_col, 0)
-            goals.append(int(g) if g == g else 0)
+            goals.append(int(g) if pd.notna(g) else 0)
     elif "x" in shots.columns and "y" in shots.columns:
         xs = shots["x"].tolist()
         ys = shots["y"].tolist()
-        goals = shots[outcome_col].fillna(0).astype(int).tolist() if outcome_col in shots.columns else [0] * len(xs)
+        if outcome_col in shots.columns:
+            goals = shots[outcome_col].fillna(0).astype(int).tolist()
+        else:
+            goals = [0] * len(xs)
     else:
         raise ValueError("shots need 'location' or x,y columns")
 
@@ -62,7 +65,12 @@ def plot_shot_map(
     return fig
 
 
-def plot_calibration(y_true: np.ndarray, probs: np.ndarray, title: str = "Calibration", n_bins: int = 10) -> plt.Figure:
+def plot_calibration(
+    y_true: np.ndarray,
+    probs: np.ndarray,
+    title: str = "Calibration",
+    n_bins: int = 10,
+) -> plt.Figure:
     from sklearn.calibration import calibration_curve
 
     prob_true, prob_pred = calibration_curve(y_true, probs, n_bins=n_bins, strategy="uniform")

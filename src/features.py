@@ -32,7 +32,12 @@ def shot_angle_radians(x: float, y: float) -> float:
     return abs(a - b)
 
 
-def point_in_triangle(p: tuple[float, float], a: tuple[float, float], b: tuple[float, float], c: tuple[float, float]) -> bool:
+def point_in_triangle(
+    p: tuple[float, float],
+    a: tuple[float, float],
+    b: tuple[float, float],
+    c: tuple[float, float],
+) -> bool:
     def sign(p1, p2, p3):
         return (p1[0] - p3[0]) * (p2[1] - p3[1]) - (p2[0] - p3[0]) * (p1[1] - p3[1])
 
@@ -126,7 +131,11 @@ def gk_off_line_error(
     return cross / line_len
 
 
-def closest_opponent_distance(shooter_x: float, shooter_y: float, freeze_frame: list[dict[str, Any]]) -> float | None:
+def closest_opponent_distance(
+    shooter_x: float,
+    shooter_y: float,
+    freeze_frame: list[dict[str, Any]],
+) -> float | None:
     best: float | None = None
     for item in freeze_frame:
         if not isinstance(item, dict) or item.get("teammate") is True:

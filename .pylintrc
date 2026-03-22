@@ -1,0 +1,33 @@
+[MASTER]
+jobs=0
+py-version=3.11
+
+[MESSAGES CONTROL]
+# import-error: venv may be missing in CI. wrong-import-position: scripts prepend sys.path.
+# Docstrings / complexity: pragmatic defaults for analytics scripts and sklearn-style code.
+disable=
+    import-error,
+    wrong-import-position,
+    missing-module-docstring,
+    missing-class-docstring,
+    missing-function-docstring,
+    too-few-public-methods,
+    too-many-arguments,
+    too-many-positional-arguments,
+    too-many-locals,
+    too-many-statements,
+    broad-exception-caught,
+    import-outside-toplevel,
+
+[FORMAT]
+max-line-length=100
+
+[BASIC]
+good-names=X,X_base,df,ax,ff,ok,p,i,j,k,nd,ev,mid,sh,sb,r,y,n,gd
+
+[DESIGN]
+max-args=15
+max-locals=45
+max-attributes=12
+max-statements=120
+max-positional-arguments=12
