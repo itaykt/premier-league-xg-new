@@ -2,6 +2,7 @@
 
 import math
 
+import pandas as pd
 import pytest
 
 from src.features import (
@@ -9,6 +10,7 @@ from src.features import (
     GOAL_LINE_X,
     POST_Y_LEFT,
     POST_Y_RIGHT,
+    _player_id_name,
     defenders_in_shot_cone,
     point_in_triangle,
     shot_angle_radians,
@@ -53,3 +55,18 @@ def test_defenders_in_shot_cone_returns_int():
 def test_post_constants_ordering():
     assert POST_Y_LEFT < POST_Y_RIGHT
     assert GOAL_LINE_X == 120.0
+
+
+def test_player_id_name_statsbombpy_flattened_string():
+    """statsbombpy flatten_attrs replaces player dict with the player's name string + player_id."""
+    row = pd.Series({"player_id": 10955, "player": "Harry Kane"})
+    pid, name = _player_id_name(row)
+    assert pid == 10955
+    assert name == "Harry Kane"
+
+
+def test_player_id_name_nested_dict_fallback():
+    row = pd.Series({"player": {"id": 99, "name": "Test Player"}})
+    pid, name = _player_id_name(row)
+    assert pid == 99
+    assert name == "Test Player"

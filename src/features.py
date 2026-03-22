@@ -179,7 +179,10 @@ def _first_touch(row: pd.Series) -> bool:
 
 
 def _player_id_name(row: pd.Series) -> tuple[int | None, str]:
-    """StatsBomb: flattened player_id or nested player dict."""
+    """
+    StatsBomb / statsbombpy: with flatten_attrs=True, `player` becomes the player's *name* (str),
+    and `player_id` holds the id. Older paths may still have nested `player` dicts.
+    """
     pid = row.get("player_id")
     if pd.notna(pid) and pid is not None:
         try:
@@ -187,8 +190,10 @@ def _player_id_name(row: pd.Series) -> tuple[int | None, str]:
             name = str(row.get("player_name", "") or "").strip()
             if not name:
                 pl = row.get("player")
-                if isinstance(pl, dict) and pl.get("name"):
-                    name = str(pl["name"])
+                if isinstance(pl, str) and pl.strip():
+                    name = pl.strip()
+                elif isinstance(pl, dict) and pl.get("name"):
+                    name = str(pl["name"]).strip()
             return i, name or f"Player {i}"
         except (TypeError, ValueError):
             pass

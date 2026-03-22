@@ -13,21 +13,29 @@ type PlayerAgg = {
   xg: number;
 };
 
+/** Prefer the longest non-empty name on any shot (StatsBomb is usually consistent; avoids stale short tokens). */
+function resolvePlayerName(playerId: number, list: ShotRow[]): string {
+  const names = list.map((s) => s.playerName?.trim()).filter((x): x is string => Boolean(x));
+  const unique = [...new Set(names)];
+  if (unique.length === 0) return `Player ${playerId}`;
+  unique.sort((a, b) => b.length - a.length);
+  return unique[0] ?? `Player ${playerId}`;
+}
+
 function aggregateByPlayer(shots: ShotRow[]): PlayerAgg[] {
-  const byId = new Map<number, { name: string; list: ShotRow[] }>();
+  const byId = new Map<number, { list: ShotRow[] }>();
   for (const s of shots) {
     if (s.playerId == null) continue;
     const id = s.playerId;
     let e = byId.get(id);
     if (!e) {
-      e = { name: s.playerName?.trim() || `Player ${id}`, list: [] };
+      e = { list: [] };
       byId.set(id, e);
     }
-    if (s.playerName?.trim()) e.name = s.playerName.trim();
     e.list.push(s);
   }
   const out: PlayerAgg[] = [];
-  for (const [playerId, { name, list }] of byId) {
+  for (const [playerId, { list }] of byId) {
     const goals = list.reduce((a, x) => a + x.goal, 0);
     const xg = list.reduce((a, x) => a + x.xg, 0);
     const teamCounts = new Map<number, number>();
@@ -42,9 +50,49 @@ function aggregateByPlayer(shots: ShotRow[]): PlayerAgg[] {
         teamId = tid;
       }
     }
-    out.push({ playerId, playerName: name, teamId, shots: list, goals, xg });
+    out.push({
+      playerId,
+      playerName: resolvePlayerName(playerId, list),
+      teamId,
+      shots: list,
+      goals,
+      xg,
+    });
   }
-  return out.sort((a, b) => b.xg - a.xg);
+  return out;
+}
+
+type SortKey = "name" | "team" | "shots" | "goals" | "xg";
+type SortDir = "asc" | "desc";
+
+function sortPlayers(
+  rows: PlayerAgg[],
+  teamName: Map<number, string>,
+  key: SortKey,
+  dir: SortDir,
+): PlayerAgg[] {
+  const arr = [...rows];
+  const m = dir === "asc" ? 1 : -1;
+  arr.sort((a, b) => {
+    switch (key) {
+      case "name":
+        return m * a.playerName.localeCompare(b.playerName, undefined, { sensitivity: "base" });
+      case "team": {
+        const na = a.teamId != null ? teamName.get(a.teamId) ?? `\uFFFF${a.teamId}` : "";
+        const nb = b.teamId != null ? teamName.get(b.teamId) ?? `\uFFFF${b.teamId}` : "";
+        return m * na.localeCompare(nb, undefined, { sensitivity: "base" });
+      }
+      case "shots":
+        return m * (a.shots.length - b.shots.length);
+      case "goals":
+        return m * (a.goals - b.goals);
+      case "xg":
+        return m * (a.xg - b.xg);
+      default:
+        return 0;
+    }
+  });
+  return arr;
 }
 
 export function PlayerDashboard({ data }: Props) {
@@ -66,6 +114,28 @@ export function PlayerDashboard({ data }: Props) {
   }, [data.matches]);
 
   const players = useMemo(() => aggregateByPlayer(data.shots), [data.shots]);
+
+  const [sortKey, setSortKey] = useState<SortKey>("xg");
+  const [sortDir, setSortDir] = useState<SortDir>("desc");
+
+  const sortedPlayers = useMemo(
+    () => sortPlayers(players, teamName, sortKey, sortDir),
+    [players, teamName, sortKey, sortDir],
+  );
+
+  const onHeaderSort = (key: SortKey) => {
+    if (sortKey === key) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(key);
+      setSortDir(key === "name" || key === "team" ? "asc" : "desc");
+    }
+  };
+
+  const sortIndicator = (key: SortKey) => {
+    if (sortKey !== key) return "";
+    return sortDir === "asc" ? " ↑" : " ↓";
+  };
 
   const [selectedId, setSelectedId] = useState<number | null>(null);
 
@@ -120,15 +190,35 @@ export function PlayerDashboard({ data }: Props) {
           <table className="data-table">
             <thead>
               <tr>
-                <th>Player</th>
-                <th>Team</th>
-                <th className="num">Shots</th>
-                <th className="num">Goals</th>
-                <th className="num">xG</th>
+                <th>
+                  <button type="button" className="sort-header" onClick={() => onHeaderSort("name")}>
+                    Player{sortIndicator("name")}
+                  </button>
+                </th>
+                <th>
+                  <button type="button" className="sort-header" onClick={() => onHeaderSort("team")}>
+                    Team{sortIndicator("team")}
+                  </button>
+                </th>
+                <th className="num">
+                  <button type="button" className="sort-header sort-header--num" onClick={() => onHeaderSort("shots")}>
+                    Shots{sortIndicator("shots")}
+                  </button>
+                </th>
+                <th className="num">
+                  <button type="button" className="sort-header sort-header--num" onClick={() => onHeaderSort("goals")}>
+                    Goals{sortIndicator("goals")}
+                  </button>
+                </th>
+                <th className="num">
+                  <button type="button" className="sort-header sort-header--num" onClick={() => onHeaderSort("xg")}>
+                    xG{sortIndicator("xg")}
+                  </button>
+                </th>
               </tr>
             </thead>
             <tbody>
-              {players.map((p) => (
+              {sortedPlayers.map((p) => (
                 <tr
                   key={p.playerId}
                   className={selectedId === p.playerId ? "selected" : undefined}
@@ -142,7 +232,7 @@ export function PlayerDashboard({ data }: Props) {
                   role="button"
                   tabIndex={0}
                 >
-                  <td>{p.playerName}</td>
+                  <td title={`StatsBomb player id: ${p.playerId}`}>{p.playerName}</td>
                   <td className="muted">{p.teamId != null ? teamName.get(p.teamId) ?? p.teamId : "—"}</td>
                   <td className="num">{p.shots.length}</td>
                   <td className="num">{p.goals}</td>
