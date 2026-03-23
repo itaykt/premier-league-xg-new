@@ -62,7 +62,7 @@ export function PitchShotMap({
       </div>
 
       <div className="pitch-shotmap__note muted">
-        <strong>{homeTeamName}</strong> attacks right → Left - <strong>{awayTeamName}</strong> attacks
+        <strong>{homeTeamName}</strong> attacks right → left - <strong>{awayTeamName}</strong> attacks
         left → right
       </div>
 
